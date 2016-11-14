@@ -1,11 +1,11 @@
 %% clc & clear
 clc;
 clear;
-close all;
+% close all;
 
 %% Initial Settings
-iter_num = 3;
-N = 200;
+iter_num = 5;
+N = 512;
 view = 301;
 theta = 0:180/view:180 - 180/view;
 
@@ -15,44 +15,45 @@ let = 1;
 DS_Factor = 5;
 
 %% Grid Settings
-x_grid = repmat(linspace(-(N-1)/2, (N-1)/2, N), N, 1);
-y_grid = repmat(linspace(-(N-1)/2, (N-1)/2, N)', 1, N);
-distance = sqrt(x_grid.^2 + y_grid.^2);
-FOV_index = find(distance >= N/2);
-
-dy=(N/2-0.5):-1:-(N/2-0.5);
-
-recon_x_temp = repmat(-(N/2 - 0.5):(N/2 - 0.5), N, 1);
-recon_y_temp = (N/2 - 0.5):-1:-(N/2 - 0.5);
-recon_y_temp = repmat(recon_y_temp', 1, N);
+X = repmat((- N/2 + 0.5) * ray_interval:ray_interval:(N/2 - 0.5) * ray_interval, N, 1);
+Y = repmat(((N/2 - 0.5) * ray_interval:-ray_interval:(- N/2 + 0.5) * ray_interval)', 1, N);
+AXIS = (- N/2 + 0.5) * ray_interval:ray_interval:(N/2 - 0.5) * ray_interval;
 
 %% Prepare Images
-ph = phantom(N);
+% ph = phantom(N);
 ph_DS = CustomPhantom(N, DS_Factor);
 img_weight = ones(N);
-proj = DotCounting(ph_DS, dot_interval, ray_interval, N, theta, let);
 proj_weight = DotCounting(img_weight, dot_interval, ray_interval, N, theta, let);
+proj = DotCounting(ph_DS, dot_interval, ray_interval, N, theta, let);
 img_iter = zeros(N);
-
-keyboard;
 
 %% Iterative Reconstruction
 for iter = 1:iter_num
     iter
-    proj_filtered = (proj - DotCounting(img_iter, dot_interval, ray_interval, N, theta, let))./proj_weight/2;
     view_count = 0;
-    for rad = (theta .* pi ./180)
+    for th = theta .* pi ./180
         view_count = view_count + 1;
-        recon_y = -recon_y_temp .* sin(rad) + recon_x_temp .* cos(rad);
-        y_mapped = recon_y(:);
-        recon_value = interp1(dy, proj_filtered(:, view_count), y_mapped);
-        recon = reshape(recon_value, N, N);
+        proj_filtered = (proj(:, view_count) - DotCounting(img_iter, dot_interval, ray_interval, N, th * 180/pi, let))./proj_weight(:, view_count)./iter_num;
+        recon = interp1(AXIS, proj_filtered', Y .* sin(th) + X .* cos(th), 'linear');
+        index = find((isnan(recon) == 1));
+        recon(index) = 0;
         img_iter = img_iter + recon;
-%         index = find(img_iter < 0);
-%         img_iter(index) = 0;
-%         img_iter(FOV_index) = 0;
     end
-    figure, imshow(img_iter, []);
-    str = sprintf('iteration %d', iter);
+    A{iter} = img_iter;
+end
+
+for i = 1:iter_num
+    temp = A{i};
+    index = find(temp < 0);
+    temp(index) = 0;
+    A{i} = temp;
+end
+
+%% Figuring
+% close all;
+for i = 1:iter_num
+    figure;
+    imshow(A{i}, []);
+    str = sprintf('iteration %d', i);
     title(str);
 end

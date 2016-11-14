@@ -20,10 +20,10 @@ N = 200;
 view = 500;
 theta = 0:360/view:360 - 360/view;
 
-dot_interval = 0.01;
+dot_interval = 0.1;
 ray_interval = 1;
-let = 10;
-DS_Factor = 10;
+let = 1;
+DS_Factor = 1;
 
 %% Analytic Sinogram Generation
 sino_Anal = zeros(N, length(theta));
