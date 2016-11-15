@@ -38,17 +38,19 @@ echo off;
 for iter = 1:iter_num
     iter
     view_count = 0;
+    tic;
     for th = theta .* pi ./180
         view_count = view_count + 1;
         proj_filtered = (proj(:, view_count) - DotCounting(img_iter, dot_interval, ray_interval, N, th * 180/pi, let))...
             ./proj_weight(:, view_count)/relaxation_factor;
         recon = interp1(AXIS, proj_filtered', Y .* sin(th) + X .* cos(th), 'linear');
-        index = find((isnan(recon) == 1));
+        index = (isnan(recon) == 1);
         recon(index) = 0;
         img_iter = img_iter + recon;
-        index = find (img_iter < 0);
+        index = (img_iter < 0);
         img_iter(index) = 0;
     end
+    toc;
     A{iter} = img_iter;
 end
 
